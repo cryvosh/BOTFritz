@@ -32,8 +32,7 @@ def worker(frame_queue, data_queue):
             data_queue.put(detect(frame, sess, detection_graph))
 
 def detect(image, sess, detection_graph):
-    image_np = np.array(image)
-    image_np = cv2.cvtColor(image_np, cv2.COLOR_RGBA2RGB)
+    image_np = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
     image_np_expanded = np.expand_dims(image_np, axis=0)
     image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
     boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
