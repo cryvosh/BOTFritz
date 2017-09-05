@@ -1,63 +1,57 @@
 import screenshot
 import threading
-import pyautogui
 import detector
 import win32api
 import tesser
 import logic
-import queue
 import time
 import cv2
 
 import numpy as np
 
-visionRadius = 500
+# y1, y2, x1, x2 in percentages
+aim_roi = (0.3, 0.7, 0.3, 0.7)
+time_roi = (0.076, 0.099, 0.475, 0.525)
+callout_roi = (0.08, 0.115, 0.08, 0.2)
 
 def main():
     last_time = time.time()
 
-    logic_queue = queue.LifoQueue()
-    logic_thread = threading.Thread(target=logic.play, args=(logic_queue, visionRadius))
+    logic_input = [None]
+    logic_thread = threading.Thread(target=logic.play, args=(logic_input, aim_roi))
     logic_thread.daemon = True
     logic_thread.start()
 
-    detector_frame_queue = queue.LifoQueue()
-    detector_data_queue = queue.LifoQueue()
-    detection_thread = threading.Thread(target=detector.worker, args=(detector_frame_queue, detector_data_queue))
+    detector_dict = {'input': [None], 'output': [None]}
+    detection_thread = threading.Thread(target=detector.worker, kwargs=detector_dict)
     detection_thread.daemon = True
     detection_thread.start()
 
-    tesser_frame_queue = queue.LifoQueue()
-    tesser_data_queue = queue.LifoQueue()
-    tesser_thread = threading.Thread(target=tesser.image_to_text, args=(tesser_frame_queue, tesser_data_queue))
+    tesser_dict = {'input': [[None, None], [None, None]], 'output': [None, None]}
+    tesser_thread = threading.Thread(target=tesser.image_to_text, kwargs=tesser_dict)
     tesser_thread.daemon = True
     tesser_thread.start()
 
     while True:
-        print('FPS: {}'.format(1 / (time.time() - last_time)))
+        print('Main thread FPS: {}'.format(1 / (time.time() - last_time)))
         last_time = time.time()
 
-        frame = np.asarray(screenshot.grab())
+        frame = np.asarray(screenshot.grab(window_name='Counter-Strike: Global Offensive'))
 
-        aim_roi = frame[pyautogui.size()[1] // 2 - visionRadius // 2:
-                        pyautogui.size()[1] // 2 + visionRadius // 2,
-                        pyautogui.size()[0] // 2 - visionRadius // 2:
-                        pyautogui.size()[0] // 2 + visionRadius // 2]
+        aim_frame = crop(frame, aim_roi)
+        time_frame = crop(frame, time_roi)
+        callout_frame = crop(frame, callout_roi)
 
-        time_roi = frame[0:
-                        30,
-                        pyautogui.size()[0] // 2 - 50:
-                        pyautogui.size()[0] // 2 + 50]
+        detector_dict['input'][0] = aim_frame
+        tesser_dict['input'][0] = (time_frame, 245)
+        tesser_dict['input'][1] = (callout_frame, -1)
 
-        detector_frame_queue.put(aim_roi)
-        tesser_frame_queue.put(time_roi)
+        if detector_dict['output'][0] and tesser_dict['output'][0]:
+            game_time, time_frame_debug = tesser_dict['output'][0]
+            callout, callout_frame_debug = tesser_dict['output'][1]
+            image, boxes, scores, classes = detector_dict['output'][0]
 
-        if not tesser_data_queue.empty():
-            game_time = tesser_data_queue.get()
-
-        if not detector_data_queue.empty():
-            image, boxes, scores, classes = detector_data_queue.get()
-            logic_queue.put((game_time, boxes[0], scores[0], classes[0]))
+            logic_input[0] = (game_time, callout, image.shape, boxes[0], scores[0], classes[0])
 
             cv2.imshow('BOT Fritz', image)
 
@@ -65,6 +59,15 @@ def main():
         if cv2.waitKey(1) & win32api.GetAsyncKeyState(0x2E):
             cv2.destroyAllWindows()
             break
+
+def crop(frame, roi):
+    height, width = frame.shape[:2]
+
+    cropped = frame[int(height * roi[0]):
+                    int(height * roi[1]),
+                    int(width  * roi[2]):
+                    int(width  * roi[3])]
+    return cropped
 
 if __name__ == '__main__':
     main()
