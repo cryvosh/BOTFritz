@@ -1,4 +1,4 @@
-import pyautogui
+import win32api
 import win32gui
 import mss
 
@@ -9,8 +9,8 @@ def grab(region=None, window_name=None):
     if not region:
         region = {'top': 0,
                   'left': 0,
-                  'width': pyautogui.size()[0],
-                  'height': pyautogui.size()[1]}
+                  'width': win32api.GetSystemMetrics(0),
+                  'height': win32api.GetSystemMetrics(1)}
 
     if window_name:
         hwnd = win32gui.FindWindow(None, window_name)

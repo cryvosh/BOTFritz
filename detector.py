@@ -14,9 +14,13 @@ categories = label_map_util.convert_label_map_to_categories(label_map, max_num_c
                                                             use_display_name=True)
 category_index = label_map_util.create_category_index(categories)
 
-def worker(input, output):
-    detection_graph = tf.Graph()
-    with detection_graph.as_default():
+DETECTION_GRAPH = None
+SESS = None
+
+def setup():
+    global SESS, DETECTION_GRAPH
+    DETECTION_GRAPH = tf.Graph()
+    with DETECTION_GRAPH.as_default():
         od_graph_def = tf.GraphDef()
         with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
             serialized_graph = fid.read()
@@ -25,22 +29,18 @@ def worker(input, output):
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
-        sess = tf.Session(graph=detection_graph, config=config)
+        SESS = tf.Session(graph=DETECTION_GRAPH, config=config)
 
-        while True:
-            frame = input[0]
-            output[0] = detect(frame, sess, detection_graph)
-
-def detect(image, sess, detection_graph):
+def detect(image):
     image_np = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
     image_np_expanded = np.expand_dims(image_np, axis=0)
-    image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
-    boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
-    scores = detection_graph.get_tensor_by_name('detection_scores:0')
-    classes = detection_graph.get_tensor_by_name('detection_classes:0')
-    num_detections = detection_graph.get_tensor_by_name('num_detections:0')
+    image_tensor = DETECTION_GRAPH.get_tensor_by_name('image_tensor:0')
+    boxes = DETECTION_GRAPH.get_tensor_by_name('detection_boxes:0')
+    scores = DETECTION_GRAPH.get_tensor_by_name('detection_scores:0')
+    classes = DETECTION_GRAPH.get_tensor_by_name('detection_classes:0')
+    num_detections = DETECTION_GRAPH.get_tensor_by_name('num_detections:0')
 
-    (boxes, scores, classes, num_detections) = sess.run(
+    (boxes, scores, classes, num_detections) = SESS.run(
         [boxes, scores, classes, num_detections],
         feed_dict={image_tensor: image_np_expanded})
 
@@ -53,4 +53,4 @@ def detect(image, sess, detection_graph):
         use_normalized_coordinates=True,
         line_thickness=8)
 
-    return (image_np, boxes, scores, classes)
+    return (image_np, {'boxes': boxes[0], 'scores': scores[0], 'classes': classes[0]})

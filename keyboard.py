@@ -1,4 +1,4 @@
-#from https://stackoverflow.com/questions/14489013/simulate-python-keypresses-for-controlling-a-game
+# from https://stackoverflow.com/questions/14489013/simulate-python-keypresses-for-controlling-a-game
 
 import ctypes
 
@@ -53,6 +53,35 @@ def ReleaseKey(hexKeyCode):
         x = Input( ctypes.c_ulong(1), ii_ )
         ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
         PRESSED.remove(hexKeyCode)
+
+def MoveMouse(x, y):
+    extra = ctypes.c_ulong(0)
+    ii_ = Input_I()
+    ii_.mi = MouseInput(int(x), int(y), 0, 0x0001 | 0x8000, 0, ctypes.pointer(extra))
+    x = Input(ctypes.c_ulong(0), ii_)
+    ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+
+def PressLMB():
+    extra = ctypes.c_ulong(0)
+    ii_ = Input_I()
+    ii_.mi = MouseInput(0, 0, 0, 0x002, 0, ctypes.pointer(extra))
+    x = Input(ctypes.c_ulong(0), ii_)
+    ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+
+def ReleaseLMB():
+    extra = ctypes.c_ulong(0)
+    ii_ = Input_I()
+    ii_.mi = MouseInput(0, 0, 0, 0x004, 0, ctypes.pointer(extra))
+    x = Input(ctypes.c_ulong(0), ii_)
+    ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+
+def Click():
+    PressLMB()
+    ReleaseLMB()
+
+def TapKey(hexKeyCode):
+    PressKey(hexKeyCode)
+    ReleaseKey(hexKeyCode)
 
 def ReleaseAllKeys() :
     for key in PRESSED:

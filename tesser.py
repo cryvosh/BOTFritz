@@ -6,18 +6,19 @@ pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files (x86)\\Tesseract-OCR\
 
 def image_to_text(input, output):
     while True:
-        for i in range(len(input)):
+        for key in input.keys():
+            if input[key] is not None:
 
-            frame, threshold = input[i]
+                frame, threshold = input[key]
 
-            if frame is not None:
                 gray = cv2.cvtColor(frame, cv2.COLOR_RGBA2GRAY)
                 resized = cv2.resize(gray, None, fx=7, fy=7, interpolation=cv2.INTER_CUBIC)
-                blurred = cv2.blur(resized, (3, 3))
 
-                if threshold != -1:
-                    thresh = cv2.threshold(blurred, threshold, 255, cv2.THRESH_BINARY_INV)[1]
+                if threshold == -1:
+                    thresh = cv2.threshold(resized, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
                 else:
-                    thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+                    thresh = cv2.threshold(resized, threshold, 255, cv2.THRESH_BINARY_INV)[1]
 
-                output[i] = (pytesseract.image_to_string(PIL.Image.fromarray(thresh)), thresh)
+                blurred = cv2.blur(thresh, (7, 7))
+
+                output[key] = (pytesseract.image_to_string(PIL.Image.fromarray(blurred)), blurred)

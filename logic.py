@@ -1,43 +1,52 @@
-import pyautogui
 import win32api
 import keyboard
 import time
 
-scale = 10
+scale = 7
+turn_amount = 2000
+paused = True
 
 AKM4 = [0x05, 0x03]
 DEAGLE = [0x02, 0x06]
 ARMOR = [0x06, 0x02]
 ARMORHELM = [0x06, 0x03]
 
-pyautogui.FAILSAFE = False
-
-def play(input, aim_roi):
-
+def play(dict, _):
+    global paused
     team = ''
-    paused = True
+
+    last_time = {'turn_amount_change':  time.time(),
+                 'velocity_read':       time.time(),
+                 'shot':                time.time(),
+                 'jump':                time.time(),
+                 'turn':                time.time()}
 
     while True:
-        time.sleep(0.1)
+        time.sleep(0.15)
 
         # ENTER/RETURN key is pressed
         if win32api.GetAsyncKeyState(0x0D) != 0:
             paused = not paused
 
-        if not paused:
-            game_time, callout, shape, boxes, scores, classes = input[0]
+        if not paused and 'shape' in dict:
+            if dict['game_mode'] == 'defuse':
+                if 'game_time' in dict and '1:55' in dict['game_time']:
+                    team = detect_team(dict['callout'])
+                    buy()
 
-            if '1:55' in game_time:
-                team = detect_team(callout)
-                buy()
+            if shoot(scale, dict['aim_roi'], dict['shape'], dict['boxes'], dict['scores'], dict['classes'], team):
+                last_time['shot'] = time.time()
+            elif dict['roam']:
+                move(last_time, dict['velocity'])
 
-            if not shoot(scale, team, aim_roi, shape, boxes, scores, classes):
-                # W
-                keyboard.PressKey(0x11)
+            dict['boxes'] = None
         else:
             keyboard.ReleaseAllKeys()
 
-def shoot(scale, team, aim_roi, shape, boxes, scores, classes):
+def shoot(scale, aim_roi, shape, boxes, scores, classes, team=None):
+    if boxes is None:
+        return 0
+
     if team == 'CT':
         enemy_indices = [i for i in range(len(classes)) if classes[i] == 1 or classes[i] == 2]
     elif team == 'T':
@@ -45,29 +54,55 @@ def shoot(scale, team, aim_roi, shape, boxes, scores, classes):
     else:
         enemy_indices = [i for i in range(len(classes)) if classes[i] <= 4]
 
-    if scores[enemy_indices[0]] >= 0.6:
-        dx = (((boxes[enemy_indices[0]][1] + boxes[enemy_indices[0]][3]) - 1) / 2) * aim_roi[0] * shape[1]
-        dy = (((boxes[enemy_indices[0]][0] + boxes[enemy_indices[0]][2]) - 1) / 2) * aim_roi[1] * shape[0]
+    if scores[enemy_indices[0]] >= 0.5:
+        dx = (((boxes[enemy_indices[0]][1] + boxes[enemy_indices[0]][3]) / 2) - 0.5) * (aim_roi[1]-aim_roi[0]) * shape[1]
+        dy = (((boxes[enemy_indices[0]][0] + boxes[enemy_indices[0]][2]) / 2) - 0.5) * (aim_roi[3]-aim_roi[2]) * shape[0]
 
         for i in enemy_indices:
-            if scores[i] > 0.4:
-                dx = (((boxes[i][1] + boxes[i][3]) - 1) / 2) * aim_roi[0] * shape[1]
-                dy = (((boxes[i][0] + boxes[i][2]) - 1) / 2) * aim_roi[1] * shape[0]
+            if (classes[i] == 2.0 or classes[i] == 4.0) and scores[i] > 0.5:
+                dx = (((boxes[i][1] + boxes[i][3]) / 2) - 0.5) * (aim_roi[1]-aim_roi[0]) * shape[1]
+                dy = (((boxes[i][0] + boxes[i][2]) / 2) - 0.5) * (aim_roi[3]-aim_roi[2]) * shape[0]
                 break
 
         dx *= scale
         dy *= scale
         counter_strafe()
 
-        pyautogui.dragRel(dx, dy, 0.0)
+        keyboard.MoveMouse(dx, dy)
+        time.sleep(0.02)
+        keyboard.Click()
         return 1
     return 0
 
-def detect_team(callout):
-    if 'CT' in callout:
-        return 'CT'
-    else:
-        return 'T'
+def move(last_time, velocity_str):
+    # W
+    keyboard.PressKey(0x11)
+
+    if dt(last_time['shot']) > 1:
+        global turn_amount
+
+        if dt(last_time['turn']) < 2:
+            return
+
+        try:
+            velocity = float(velocity_str)
+            last_time['velocity_read'] = time.time()
+            if velocity < 100:
+                last_time['turn'] = time.time()
+                keyboard.MoveMouse(turn_amount, 0)
+        except ValueError:
+            if dt(last_time['velocity_read']) > 3:
+                last_time['turn'] = time.time()
+                keyboard.MoveMouse(turn_amount, 0)
+
+        if dt(last_time['jump']) > 7:
+            keyboard.TapKey(0x39)
+            keyboard.TapKey(0x1D)
+            last_time['jump'] = time.time()
+
+        if dt(last_time['turn_amount_change']) > 15:
+            turn_amount *= -1
+            last_time['turn_amount_change'] = time.time()
 
 def counter_strafe():
     hold_time = 0.05
@@ -91,6 +126,19 @@ def counter_strafe():
             keyboard.ReleaseKey(key)
 
         time.sleep(relax_time)
+
+def set_pause(pause):
+    global paused
+    paused = pause
+
+def dt(last_time):
+    return (time.time() - last_time)
+
+def detect_team(callout):
+    if 'CT' in callout:
+        return 'CT'
+    else:
+        return 'T'
 
 # Buggy, yes
 def buy():
