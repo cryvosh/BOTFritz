@@ -1,10 +1,16 @@
-import win32api
 import keyboard
+import win32api
+import sound
 import time
 
-scale = 7
-turn_amount = 2000
-paused = True
+PAUSED = True
+TIMESTEP = 0.01
+
+CSGO_SENSITIVITY = 2
+M_YAW = 0.022
+
+turn_scale = 2000
+sound_look_scale = 30000
 
 AKM4 = [0x05, 0x03]
 DEAGLE = [0x02, 0x06]
@@ -12,32 +18,36 @@ ARMOR = [0x06, 0x02]
 ARMORHELM = [0x06, 0x03]
 
 def play(dict, _):
-    global paused
+    aim_scale = 0.154 / (CSGO_SENSITIVITY * M_YAW)
+    time_between_shots = 0.1
     team = ''
 
-    last_time = {'turn_amount_change':  time.time(),
-                 'velocity_read':       time.time(),
-                 'shot':                time.time(),
-                 'jump':                time.time(),
-                 'turn':                time.time()}
+    times = {'turn_amount_change':  time.time(),
+             'velocity_read':       time.time(),
+             'shot':                time.time(),
+             'jump':                time.time(),
+             'turn':                time.time()}
 
     while True:
-        time.sleep(0.15)
+        time.sleep(TIMESTEP)
 
-        # ENTER/RETURN key is pressed
-        if win32api.GetAsyncKeyState(0x0D) != 0:
-            paused = not paused
+        # HOME key is pressed
+        if win32api.GetAsyncKeyState(0x24) != 0:
+            set_pause(not PAUSED)
 
-        if not paused and 'shape' in dict:
+        if not PAUSED and 'shape' in dict:
             if dict['game_mode'] == 'defuse':
                 if 'game_time' in dict and '1:55' in dict['game_time']:
                     team = detect_team(dict['callout'])
                     buy()
 
-            if shoot(scale, dict['aim_roi'], dict['shape'], dict['boxes'], dict['scores'], dict['classes'], team):
-                last_time['shot'] = time.time()
-            elif dict['roam']:
-                move(last_time, dict['velocity'])
+            if dt(times['shot']) > time_between_shots:
+                if shoot(aim_scale, dict['aim_roi'], dict['shape'], dict['boxes'], dict['scores'], dict['classes'], team):
+                    times['shot'] = time.time()
+                elif dict['movement'] == 'roam':
+                    roam_move(dict['velocity'], times)
+                elif dict['movement'] == 'sound':
+                    sound_move(sound_look_scale, times)
 
             dict['boxes'] = None
         else:
@@ -69,40 +79,53 @@ def shoot(scale, aim_roi, shape, boxes, scores, classes, team=None):
         counter_strafe()
 
         keyboard.MoveMouse(dx, dy)
-        time.sleep(0.02)
+        time.sleep(0.01)
         keyboard.Click()
         return 1
     return 0
 
-def move(last_time, velocity_str):
-    # W
-    keyboard.PressKey(0x11)
+def roam_move(velocity_str, times):
+    global turn_scale
+    keyboard.PressKey(0x11) # W
 
-    if dt(last_time['shot']) > 1:
-        global turn_amount
+    if dt(times['shot']) < 1 or dt(times['turn']) < 2:
+        return
 
-        if dt(last_time['turn']) < 2:
-            return
+    try:
+        velocity = float(velocity_str)
+        times['velocity_read'] = time.time()
+        if velocity < 100:
+            times['turn'] = time.time()
+            keyboard.MoveMouse(turn_scale, 0)
+    except ValueError:
+        if dt(times['velocity_read']) > 3:
+            times['turn'] = time.time()
+            keyboard.MoveMouse(turn_scale, 0)
 
-        try:
-            velocity = float(velocity_str)
-            last_time['velocity_read'] = time.time()
-            if velocity < 100:
-                last_time['turn'] = time.time()
-                keyboard.MoveMouse(turn_amount, 0)
-        except ValueError:
-            if dt(last_time['velocity_read']) > 3:
-                last_time['turn'] = time.time()
-                keyboard.MoveMouse(turn_amount, 0)
+    if dt(times['jump']) > 20:
+        keyboard.TapKey(0x39)
+        keyboard.TapKey(0x1D)
+        times['jump'] = time.time()
 
-        if dt(last_time['jump']) > 7:
-            keyboard.TapKey(0x39)
-            keyboard.TapKey(0x1D)
-            last_time['jump'] = time.time()
+    if dt(times['turn_amount_change']) > 15:
+        turn_scale *= -1
+        times['turn_amount_change'] = time.time()
 
-        if dt(last_time['turn_amount_change']) > 15:
-            turn_amount *= -1
-            last_time['turn_amount_change'] = time.time()
+def sound_move(scale, times):
+    if dt(times['shot']) > 0.5:
+        look_at_sound(scale)
+        keyboard.PressKey(0x11)  # W
+
+def look_at_sound(scale):
+    left, right = sound.get_sound()
+
+    if left != right:
+        total = left + right
+        left /= total
+        right /= total
+
+        delta = (right - left)
+        keyboard.MoveMouse(delta * scale * TIMESTEP, 0)
 
 def counter_strafe():
     hold_time = 0.05
@@ -128,8 +151,8 @@ def counter_strafe():
         time.sleep(relax_time)
 
 def set_pause(pause):
-    global paused
-    paused = pause
+    global PAUSED
+    PAUSED = pause
 
 def dt(last_time):
     return (time.time() - last_time)

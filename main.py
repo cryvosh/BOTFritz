@@ -23,7 +23,9 @@ tesser_rois = {'game_time':  ((0.475, 0.525, 0.076, 0.099), 245),
 def main():
     last_time = time.time()
 
-    logic_dict = {'aim_roi': aim_roi, 'game_mode': 'deathmatch', 'roam': True}
+    # 'movement' = 'roam', 'sound', or 'none'
+    # 'game_mode' = 'defuse' or 'deathmatch'
+    logic_dict = {'aim_roi': aim_roi, 'movement': 'sound', 'game_mode': 'deathmatch'}
     logic_thread = threading.Thread(target=logic.play, args=(logic_dict, None))
     logic_thread.daemon = True
     logic_thread.start()
@@ -58,8 +60,8 @@ def main():
 
         cv2.imshow('BOT Fritz', image)
 
-        # DELETE key to quit
-        if cv2.waitKey(1) & win32api.GetAsyncKeyState(0x2E):
+        # END key to quit
+        if cv2.waitKey(1) & win32api.GetAsyncKeyState(0x23):
             cv2.destroyAllWindows()
             break
 
