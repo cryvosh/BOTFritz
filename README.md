@@ -33,4 +33,6 @@ Improved logic, pathfinding, audio analysis, and object detection are in the wor
 - Fritz hears better with HRTF disabled.
 - The current detection model was trained for de_dust2. A significantly improved detection model is in the works.
 
-Fritz is ultimately intended for offline use, so be sure to **add -insecure and +sv_lan 1 to the CS:GO launch options** before testing Fritz to avoid any complications.
+**Cautions:**
+- Fritz doesn't touch CS:GO's memory and so in theory would **NOT** trigger a VAC ban.
+- Fritz is ultimately intended for offline use, so be sure to **add -insecure and +sv_lan 1 to the CS:GO launch options** before testing Fritz to avoid any complications, (such as a modified version in the future unintendtionally messed with CS:GO's memory).
