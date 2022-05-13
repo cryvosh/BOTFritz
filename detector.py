@@ -1,9 +1,10 @@
 import tensorflow as tf
 import numpy as np
 import cv2
+import pandas
 
-from utils import label_map_util
-from utils import visualization_utils as vis_util
+from object_detection.utils import label_map_util
+from object_detection.utils import visualization_utils as vis_util
 
 PATH_TO_CKPT = 'frozen_inference_graph.pb'
 PATH_TO_LABELS = 'label_map.pbtxt'
@@ -21,15 +22,14 @@ def setup():
     global SESS, DETECTION_GRAPH
     DETECTION_GRAPH = tf.Graph()
     with DETECTION_GRAPH.as_default():
-        od_graph_def = tf.GraphDef()
-        with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
+        od_graph_def = tf.compat.v1.GraphDef()
+        with tf.compat.v1.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
             serialized_graph = fid.read()
             od_graph_def.ParseFromString(serialized_graph)
-            tf.import_graph_def(od_graph_def, name='')
-
-        config = tf.ConfigProto()
+            tf.compat.v1.import_graph_def(od_graph_def, name='')
+        config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
-        SESS = tf.Session(graph=DETECTION_GRAPH, config=config)
+        SESS = tf.compat.v1.Session(graph=DETECTION_GRAPH, config=config)
 
 def detect(image):
     image_np = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)

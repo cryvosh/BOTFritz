@@ -17,14 +17,16 @@ Improved logic, pathfinding, audio analysis, and object detection are in the wor
 - mat_setvideomode 1152 864 1
 
 **Dependencies:**
-- Python 3.5
-- win32api
-- tensorflow
-- opencv
-- mss
-- PIL/Pillow
-- pytesseract, which further requires the installation of [tesseract 3.05](https://github.com/UB-Mannheim/tesseract/wiki).
-- PyAudio_PortAudio, which can be installed using the included .whl file or from the [repo](https://github.com/intxcc/pyaudio_portaudio).
+- Python 3.9.7
+- pip install pywin32
+- pip install tensorflow
+- pip install opencv-python
+- pip install mss
+- pip install Pillow
+- pip install pytesseract + https://github.com/UB-Mannheim/tesseract/wiki
+- pip install tesseract-ocr
+- pip install tesseract
+- PyAudio, which can be installed using the included .whl file or from the [repo](https://github.com/intxcc/pyaudio_portaudio).
 
 **Notes:**
 - Fritz automatically pauses if the game loses focus, press HOME to unpause.

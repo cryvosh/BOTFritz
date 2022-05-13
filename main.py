@@ -25,7 +25,7 @@ def main():
 
     # 'movement' = 'roam', 'sound', or 'none'
     # 'game_mode' = 'defuse' or 'deathmatch'
-    logic_dict = {'aim_roi': aim_roi, 'movement': 'sound', 'game_mode': 'deathmatch'}
+    logic_dict = {'aim_roi': aim_roi, 'movement': 'roam', 'game_mode': 'defuse'}
     logic_thread = threading.Thread(target=logic.play, args=(logic_dict, None))
     logic_thread.daemon = True
     logic_thread.start()

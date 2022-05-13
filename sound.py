@@ -3,7 +3,9 @@ import audioop
 import numpy as np
 
 frames = 512
-
+WIDTH = 2
+CHANNELS = 2
+RATE = 44100
 p = pyaudio.PyAudio()
 
 device_info = p.get_default_output_device_info()
@@ -12,13 +14,12 @@ is_wasapi = (p.get_host_api_info_by_index(device_info["hostApi"])["name"]).find(
 if not is_wasapi:
     print ("Default output device does not support WASAPI loopback mode.")
 
-stream = p.open(format = pyaudio.paInt16,
-                channels = 2,
-                rate = int(device_info["defaultSampleRate"]),
-                input = True,
-                frames_per_buffer = frames,
-                input_device_index = device_info["index"],
-                as_loopback = True)
+stream = p.open(format=p.get_format_from_width(WIDTH),
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                output=True,
+                frames_per_buffer = 512)
 
 def get_sound():
     data = stream.read(frames)
