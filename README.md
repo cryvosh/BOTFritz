@@ -24,6 +24,8 @@ Improved logic, pathfinding, audio analysis, and object detection are in the wor
 - pip install mss
 - pip install Pillow
 - pip install pytesseract
+- pip install tesseract-ocr
+- pip install tesseract
 - PyAudio, which can be installed using the included .whl file or from the [repo](https://github.com/intxcc/pyaudio_portaudio).
 
 **Notes:**
