@@ -23,7 +23,7 @@ Improved logic, pathfinding, audio analysis, and object detection are in the wor
 - pip install opencv-python
 - pip install mss
 - pip install Pillow
-- pip install pytesseract
+- pip install pytesseract + https://github.com/UB-Mannheim/tesseract/wiki
 - pip install tesseract-ocr
 - pip install tesseract
 - PyAudio, which can be installed using the included .whl file or from the [repo](https://github.com/intxcc/pyaudio_portaudio).
